@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useTransition } from "react";
 import { CategoryT, SubCategoryT } from "@/types";
 
-// Helper function to build the category path recursively
+// ----------------------- Helper -----------------------
 const buildCategoryPath = (
   category: SubCategoryT,
   basePath: string = ""
@@ -13,6 +13,7 @@ const buildCategoryPath = (
   return `${basePath}/${category.name}`;
 };
 
+// ----------------------- SubCategoryList -----------------------
 const SubCategoryList = ({
   subcategories,
   isMobile,
@@ -43,13 +44,10 @@ const SubCategoryList = ({
     e.stopPropagation();
     e.preventDefault();
 
-    // Close all menus immediately
     setOpenSubIds([]);
 
-    // Always navigate when clicked, even if it has children
     router.push(`/product/category${currentPath}`);
 
-    // If it has children, also toggle the dropdown (for mobile)
     if (hasChildren && isMobile) {
       setOpenSubIds((prev) =>
         prev.includes(subcategory._id)
@@ -59,57 +57,73 @@ const SubCategoryList = ({
     }
   };
 
-  const sortedSubcategories = subcategories
-    ?.slice()
-    .sort((a, b) => (a.rank || 0) - (b.rank || 0));
+  const sortedSubcategories = Array.isArray(subcategories)
+    ? subcategories.slice().sort((a, b) => (a.rank || 0) - (b.rank || 0))
+    : [];
 
   return (
     <ul className={`${isMobile ? "pl-4 ml-2" : "ml-3"} space-y-1 mt-1`}>
-      {sortedSubcategories?.map((sub) => {
-        const hasChildren = (sub.subcategories || []).length > 0;
-        const isOpen = openSubIds.includes(sub._id);
-        const currentPath = buildCategoryPath(sub, parentPath);
-        const isActive = pathname === `/product/category${currentPath}`;
+      {sortedSubcategories.length > 0 ? (
+        sortedSubcategories.map((sub) => {
+          const hasChildren =
+            Array.isArray(sub.subcategories) && sub.subcategories.length > 0;
+          const isOpen = openSubIds.includes(sub._id);
+          const currentPath = buildCategoryPath(sub, parentPath);
+          const isActive = pathname === `/product/category${currentPath}`;
 
-        return (
-          <li key={sub._id} className="group">
-            <button
-              onClick={(e) =>
-                handleSubCategoryClick(sub, currentPath, hasChildren, e)
-              }
-              className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md transition-all ${
-                isActive
-                  ? "bg-blue-100 text-blue-700"
-                  : "hover:bg-gray-50 hover:text-blue-700 text-gray-700"
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                {hasChildren && (
-                  <button
-                    onClick={(e) => toggleSub(sub._id, e)}
-                    className="p-0.5 hover:bg-gray-200 rounded"
-                  >
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform ${
-                        isOpen ? "rotate-180 text-blue-600" : "text-gray-500"
-                      }`}
-                    />
-                  </button>
-                )}
-                <span className="text-sm font-medium">{sub.name}</span>
-              </span>
-            </button>
+          return (
+            <li key={sub._id} className="group">
+              <button
+                onClick={(e) =>
+                  handleSubCategoryClick(sub, currentPath, hasChildren, e)
+                }
+                className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md transition-all ${
+                  isActive
+                    ? "bg-blue-100 text-blue-700"
+                    : "hover:bg-gray-50 hover:text-blue-700 text-gray-700"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  {hasChildren && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSub(sub._id, e);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleSub(sub._id, e as any);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="p-0.5 hover:bg-gray-200 rounded cursor-pointer"
+                    >
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform ${
+                          isOpen ? "rotate-180 text-blue-600" : "text-gray-500"
+                        }`}
+                      />
+                    </span>
+                  )}
+                  <span className="text-sm font-medium">{sub.name}</span>
+                </span>
+              </button>
 
-            {hasChildren && isOpen && (
-              <SubCategoryList
-                subcategories={sub.subcategories}
-                isMobile={isMobile}
-                parentPath={currentPath}
-              />
-            )}
-          </li>
-        );
-      })}
+              {hasChildren && isOpen && (
+                <SubCategoryList
+                  subcategories={sub.subcategories}
+                  isMobile={isMobile}
+                  parentPath={currentPath}
+                />
+              )}
+            </li>
+          );
+        })
+      ) : (
+        <li className="text-gray-500 text-sm px-2">No subcategories</li>
+      )}
     </ul>
   );
 };
@@ -132,22 +146,21 @@ export const CategoryMenu = ({
 
   const [isPending, startTransition] = useTransition();
 
-  const sortedMenus = menus
-    ?.slice()
-    .sort((a, b) => (a.rank || 0) - (b.rank || 0));
+  const sortedMenus = Array.isArray(menus)
+    ? menus.slice().sort((a, b) => (a.rank || 0) - (b.rank || 0))
+    : [];
 
-  const menusWithSortedSubcategories = sortedMenus?.map((menu) => ({
+  const menusWithSortedSubcategories = sortedMenus.map((menu) => ({
     ...menu,
-    subcategories: (menu.subcategories || [])
-      .slice()
-      .sort((a, b) => (a.rank || 0) - (b.rank || 0))
+    subcategories: Array.isArray(menu.subcategories)
+      ? menu.subcategories.slice().sort((a, b) => (a.rank || 0) - (b.rank || 0))
+      : []
   }));
 
-  const visibleMenus = menusWithSortedSubcategories?.slice(0, 7);
-  const remainingMenus = menusWithSortedSubcategories?.slice(7);
+  const visibleMenus = menusWithSortedSubcategories.slice(0, 7);
+  const remainingMenus = menusWithSortedSubcategories.slice(7);
 
   const handleCategoryClick = (category: CategoryT) => {
-    // Close all menus immediately
     setOpenIds([]);
     setMoreOpen(false);
 
@@ -156,7 +169,6 @@ export const CategoryMenu = ({
     });
   };
 
-  // Close more menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -199,8 +211,9 @@ export const CategoryMenu = ({
         isMobile ? "flex flex-col gap-1" : "flex items-center gap-6"
       }`}
     >
-      {visibleMenus?.map((menu) => {
-        const hasChildren = (menu.subcategories || []).length > 0;
+      {visibleMenus.map((menu) => {
+        const hasChildren =
+          Array.isArray(menu.subcategories) && menu.subcategories.length > 0;
         const isActive = pathname === `/product/category/${menu.name}`;
 
         return (
@@ -261,7 +274,7 @@ export const CategoryMenu = ({
         );
       })}
 
-      {remainingMenus?.length > 0 && (
+      {remainingMenus.length > 0 && (
         <div
           ref={moreMenuRef}
           className={`relative ${isMobile ? "" : "ml-auto"}`}
@@ -286,8 +299,10 @@ export const CategoryMenu = ({
                   : "absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 p-3 min-w-[200px] rounded-lg shadow-lg"
               } flex flex-col gap-1`}
             >
-              {remainingMenus?.map((menu) => {
-                const hasChildren = (menu.subcategories || []).length > 0;
+              {remainingMenus.map((menu) => {
+                const hasChildren =
+                  Array.isArray(menu.subcategories) &&
+                  menu.subcategories.length > 0;
                 const isActive = pathname === `/product/category/${menu.name}`;
 
                 return (
