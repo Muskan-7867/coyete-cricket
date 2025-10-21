@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect
 import Link from "next/link";
 import Image from "next/image";
 import { MenuIcon, User, X } from "lucide-react";
@@ -8,11 +8,19 @@ import CartCount from "./components/CartCount";
 import { useRouter } from "next/navigation";
 import { useCategories } from "@/lib/queries/query";
 import { CategoryMenu } from "./components/Menu";
+import useCartStore from "@/lib/store/Cart/Cart.store";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const { data: menus } = useCategories();
+  const { setCartCount } = useCartStore(); // Get setter from store
+
+  // ✅ Initialize wishlist count on component mount
+  useEffect(() => {
+    const wishlistItems = JSON.parse(localStorage.getItem("wishlist") || "[]");
+    setCartCount(wishlistItems.length);
+  }, [setCartCount]);
 
   return (
     <>
@@ -40,13 +48,11 @@ export default function Navbar() {
 
           {/* Right - Icons + Mobile Toggle */}
           <div className="flex items-center gap-4">
-            <CartCount />
-
+            <CartCount  /> {/* Pass actual cart count if needed */}
             <User
               className="w-6 h-6 text-gray-800 cursor-pointer"
               onClick={() => router.push("/register")}
             />
-
             <button
               className="md:hidden text-gray-800"
               onClick={() => setMenuOpen(!menuOpen)}

@@ -1,97 +1,95 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import useCartStore from "@/lib/store/Cart/Cart.store"; // ✅ Import store
 
-interface CartItem {
-  id: number;
+interface WishlistItem {
+  id: string;
   name: string;
   price: number;
+  originalPrice: number;
   image: string;
-  quantity: number;
+  slug: string;
 }
 
 export default function Cart() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const { setCartCount } = useCartStore(); // ✅ Access Zustand store
 
-  // Example: Load from localStorage or use static data
+  // 🧠 Load wishlist items from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("cart");
+    const stored = localStorage.getItem("wishlist");
     if (stored) {
-      setCartItems(JSON.parse(stored));
+      const parsed = JSON.parse(stored);
+      setWishlistItems(parsed);
+      console.log("from cart", parsed)
+      setCartCount(parsed.length); // ✅ Sync count on mount
     } else {
-      // fallback static data
-      setCartItems([
-        {
-          id: 1,
-          name: "Pro Reserve Edition",
-          price: 75000,
-          image: "/assets/tshirt.png",
-          quantity: 1
-        },
-        {
-          id: 2,
-          name: "Player Edition",
-          price: 64000,
-          image: "/assets/tshirt.png",
-          quantity: 2
-        }
-      ]);
+      setCartCount(0);
     }
-  }, []);
+  }, [setCartCount]);
 
-  if (cartItems.length === 0) {
+  // 🧾 Handle remove item from wishlist
+  const handleRemove = (id: string) => {
+    const updated = wishlistItems.filter((item) => item.id !== id);
+    setWishlistItems(updated);
+    localStorage.setItem("wishlist", JSON.stringify(updated));
+
+    // ✅ Update global wishlist count (Navbar)
+    setCartCount(updated.length);
+  };
+
+  if (wishlistItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
         <p className="text-lg font-semibold text-gray-600">
-          Your cart is empty 🛒
+          Your wishlist is empty ❤️
         </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 mt-34">
-      <h2 className="text-2xl font-bold mb-6">Shopping Cart</h2>
+    <div className="max-w-5xl mx-auto p-6 mt-20">
+      <h2 className="text-2xl font-bold mb-6">My Wishlist</h2>
 
       <div className="space-y-4">
-        {cartItems.map((item) => (
+        {wishlistItems.map((item) => (
           <div
             key={item.id}
             className="flex items-center justify-between bg-white shadow-md p-4 rounded-xl"
           >
             <div className="flex items-center gap-4">
-              <Image
-                src={item.image}
-                alt={item.name}
-                width={80}
-                height={80}
-                className="rounded-lg p-4"
-              />
+            
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  width={80}
+                  height={80}
+                  className="rounded-lg object-contain"
+                />
+             
               <div>
                 <h3 className="font-semibold text-gray-800">{item.name}</h3>
                 <p className="text-gray-600">₹{item.price.toLocaleString()}</p>
-                <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                {item.originalPrice && (
+                  <p className="text-sm text-gray-400 line-through">
+                    ₹{item.originalPrice.toLocaleString()}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="text-right">
-              <p className="font-semibold text-gray-800">
-                ₹{(item.price * item.quantity).toLocaleString()}
-              </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => handleRemove(item.id)}
+                className="text-red-500 hover:text-red-700 transition-colors"
+              >
+                Remove
+              </button>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Cart Summary */}
-      <div className="mt-6 border-t pt-4 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-800">Total:</h3>
-        <p className="text-xl font-bold text-gray-900">
-          ₹
-          {cartItems
-            .reduce((total, item) => total + item.price * item.quantity, 0)
-            .toLocaleString()}
-        </p>
       </div>
     </div>
   );
