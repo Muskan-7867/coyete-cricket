@@ -46,6 +46,7 @@ export interface ProductFormData {
   subcategory: string;
   size: string;
   colors: string;
+  tags: string[];
   inStock: boolean;
   images: File[];
   imageRanks?: number[]; // Add this for tracking ranks during form submission

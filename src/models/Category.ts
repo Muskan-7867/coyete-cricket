@@ -32,6 +32,10 @@ const CategorySchema: Schema = new Schema(
         ref: "SubCategory",
       },
     ],
+      products: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product'
+  }]
   },
   {
     timestamps: true,

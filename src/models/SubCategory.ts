@@ -7,6 +7,7 @@ export interface ISubCategory extends Document {
   parentCategory: string;
   parentSubCategory?: string;
   subcategories: mongoose.Types.ObjectId[];
+   products: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +38,12 @@ const SubCategorySchema: Schema = new Schema(
         ref: "SubCategory",
       },
     ],
+     products: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product", // ✅ Reference your Product model
+      },
+    ],
   },
   {
     timestamps: true,
@@ -44,4 +51,4 @@ const SubCategorySchema: Schema = new Schema(
 );
 
 export default mongoose.models?.SubCategory ||
-  mongoose.model<ISubCategory>("SubCategory", SubCategorySchema);
+mongoose.model<ISubCategory>("SubCategory", SubCategorySchema);

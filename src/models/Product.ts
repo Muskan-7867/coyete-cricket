@@ -1,4 +1,3 @@
-
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IProduct extends Document {
@@ -11,8 +10,9 @@ export interface IProduct extends Document {
   images?: { url: string }[];
   badge?: string;
   category: Types.ObjectId;
-  subCategory?: Types.ObjectId; // Changed from subcategory to subCategory
+  subCategory?: Types.ObjectId;
   subSubCategory?: Types.ObjectId;
+  tags: string[]; // Add tags field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,7 +62,7 @@ const ProductSchema: Schema = new Schema(
       ref: "Category",
       required: true
     },
-    subCategory: { // Changed from subcategory to subCategory
+    subCategory: {
       type: Schema.Types.ObjectId,
       ref: "SubCategory"
     },
@@ -77,6 +77,10 @@ const ProductSchema: Schema = new Schema(
     colors: { 
       type: String, 
       required: [true, 'Color is required'] 
+    },
+    tags: { // Add tags field
+      type: [String],
+      default: []
     },
     inStock: { 
       type: Boolean, 
@@ -95,7 +99,6 @@ const ProductSchema: Schema = new Schema(
   }
 );
 
-// ✅ Fix for model overwrite in Next.js
 const Product = mongoose.models?.Product || mongoose.model('Product', ProductSchema);
 
 export default Product;
