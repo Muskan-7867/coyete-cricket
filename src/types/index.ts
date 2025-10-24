@@ -11,7 +11,6 @@ export type SubCategoryT = {
   _id: string;
   name: string;
   parentCategory: string | CategoryT;
-  parentSubCategory?: string | null;
   subcategories?: SubCategoryT[];
   subSubCategories?: SubSubCategoryT[];
   rank: number;
@@ -43,7 +42,8 @@ export interface ProductFormData {
   tax: number;
   quality: string;
   category: string;
-  subcategory: string;
+  subCategory: string;
+  subSubCategory: string;
   size: string;
   colors: string;
   tags: string[];

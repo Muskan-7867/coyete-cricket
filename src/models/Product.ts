@@ -64,12 +64,14 @@ const ProductSchema: Schema = new Schema(
     },
     subCategory: {
       type: Schema.Types.ObjectId,
-      ref: "SubCategory"
-    },
-    subSubCategory: {
-      type: Schema.Types.ObjectId,
       ref: "SubCategory",
+      required: true
     },
+      subSubCategory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubCategory', // Reference the same SubCategory model
+    required: false // Make it optional
+  },
     size: { 
       type: String, 
       required: [true, 'Size is required'] 
