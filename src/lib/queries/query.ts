@@ -17,7 +17,7 @@ export const useSizes = () => {
   return useQuery({
     queryKey: ["sizes"],
     queryFn: getSizesAction,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5
   });
 };
 
@@ -25,7 +25,7 @@ export const useColors = () => {
   return useQuery({
     queryKey: ["colors"],
     queryFn: getColorsAction,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5
   });
 };
 
@@ -33,17 +33,15 @@ export const useQuality = () => {
   return useQuery({
     queryKey: ["qualities"],
     queryFn: getQualitiesAction,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5
   });
 };
 
-
-export const useSubcategories = () => {
+export const useSubcategories = (id: string) => {
+  console.log("from query", id);
   return useQuery({
-    queryKey: ["subcategories"],
-    queryFn: getAllSubcategories,
-    staleTime: 1000 * 60 * 5,
+    queryKey: ["subcategories", id],
+    queryFn: () => getAllSubcategories(id),
+    staleTime: 1000 * 60 * 5
   });
 };
-
-
