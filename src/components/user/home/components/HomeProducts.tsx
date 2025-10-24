@@ -1,75 +1,108 @@
 "use client";
-import FeaturedProductCard from "@/components/ui/FeaturedProductCard";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef } from "react";
+import FeaturedProductCard from "@/components/ui/FeaturedProductCard";
+import { NavigationTabs } from "./NavigationTabs";
+
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  images?: { url: string }[];
+  category?: string;
+  tags?: string[];
+}
 
 export default function ProductPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [activeTab, setActiveTab] = useState("best-sellers");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // 🧠 Map tab values to product tags
+  const tagMap: Record<string, string> = {
+    "best-sellers": "Best sellers",
+    "our-favourites": "Our favourites",
+    "just-in": "Just In",
+    sale: "Sale"
+  };
+
+  // 🎯 Fetch products by tag
+  const fetchProductsByTag = async (tag: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `/api/products/tag?tags=${encodeURIComponent(tag)}`
+      );
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🚀 Fetch default (best sellers) on mount
+  useEffect(() => {
+    fetchProductsByTag(tagMap[activeTab]);
+  }, [activeTab]);
 
   const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
-    }
+    scrollContainerRef.current?.scrollBy({ left: -300, behavior: "smooth" });
   };
 
   const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
-    }
+    scrollContainerRef.current?.scrollBy({ left: 300, behavior: "smooth" });
   };
 
-  // Dummy product data with images
-const products = [
-  { category: "Bats", title: "Pro Cricket Bat", price: 1200, image: "/assets/tshirt.png" },
-  { category: "Balls", title: "Leather Cricket Ball", price: 300, image: "/assets/tshirt1.png" },
-  { category: "Gloves", title: "Wicket Keeping Gloves", price: 800, image: "/assets/tshirt.png" },
-  { category: "Pads", title: "Batting Pads", price: 1000, image: "/assets/tshirt1.png" },
-  { category: "Bags", title: "Cricket Kit Bag", price: 1500, image: "/assets/tshirt.png" },
-  { category: "Match Wear", title: "Team Jersey", price: 700, image: "/assets/tshirt1.png" },
-  { category: "Helmets", title: "Safety Cricket Helmet", price: 2000, image: "/assets/tshirt.png" },
-  { category: "Accessories", title: "Bat Grip Set", price: 250, image: "/assets/tshirt1.png" },
-  { category: "Bats", title: "Junior Cricket Bat", price: 600, image: "/assets/tshirt.png" },
-  { category: "Balls", title: "Practice Ball Pack", price: 400, image: "/assets/tshirt1.png" },
-  { category: "Gloves", title: "Batting Gloves", price: 750, image: "/assets/tshirt.png" },
-  { category: "Pads", title: "Junior Batting Pads", price: 500, image: "/assets/tshirt1.png" },
-  { category: "Bags", title: "Small Kit Bag", price: 900, image: "/assets/tshirt.png" },
-  { category: "Match Wear", title: "Practice Jersey", price: 450, image: "/assets/tshirt1.png" },
-  { category: "Helmets", title: "Junior Helmet", price: 1200, image: "/assets/tshirt.png" },
-  { category: "Accessories", title: "Wrist Bands", price: 150, image: "/assets/tshirt1.png" },
-];
-
-
   return (
-    <div className="max-w-7xl mx-auto my-8">
-      <div
-        ref={scrollContainerRef}
-        className="flex gap-4 items-center overflow-x-scroll scrollbar-hide"
-      >
-        {products.map((product, i) => (
-          <FeaturedProductCard
-            key={i}
-            category={product.category}
-            title={product.title}
-            price={product.price}
-            image={product.image}
-          />
-        ))}
-      </div>
+    <div className="max-w-7xl mx-auto my-8 space-y-6">
+      {/* 🟧 Navigation Tabs */}
+      <NavigationTabs
+        defaultValue={activeTab}
+        onValueChange={(value) => setActiveTab(value)}
+      />
 
-      <div className="flex justify-end gap-2 mt-4">
-        <button
-          onClick={scrollLeft}
-          className="p-2 rounded-full bg-primary hover:bg-primary/80"
-        >
-          <ChevronLeft className="h-5 w-5 text-white" />
-        </button>
-        <button
-          onClick={scrollRight}
-          className="p-2 rounded-full bg-primary hover:bg-primary/80"
-        >
-          <ChevronRight className="h-5 w-5 text-white" />
-        </button>
-      </div>
+      {/* 🟦 Product List */}
+      {loading ? (
+        <p className="text-center text-gray-500 py-8">Loading products...</p>
+      ) : products.length > 0 ? (
+        <>
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-4 items-center overflow-x-scroll scrollbar-hide"
+          >
+            {products.map((product) => (
+              <FeaturedProductCard
+                key={product._id}
+                category={product.category || ""}
+                title={product.name}
+                price={product.price}
+                image={product.images?.[0]?.url}
+                 hoverImage={product.images?.[1]?.url}
+              />
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={scrollLeft}
+              className="p-2 rounded-full bg-primary hover:bg-primary/80"
+            >
+              <ChevronLeft className="h-5 w-5 text-white" />
+            </button>
+            <button
+              onClick={scrollRight}
+              className="p-2 rounded-full bg-primary hover:bg-primary/80"
+            >
+              <ChevronRight className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="text-center text-gray-500 py-8">No products found.</p>
+      )}
     </div>
   );
 }
