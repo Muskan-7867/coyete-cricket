@@ -6,14 +6,13 @@ import Link from "next/link";
 import { Heart } from "lucide-react"; // Changed from ShoppingCart to Heart
 import useCartStore from "@/lib/store/Cart/Cart.store";
 
-
 interface SingleProductCardProps {
   id: string;
   name: string;
   price: number;
   originalPrice: number;
-  image: string;
-  slug: string;
+  images?: { url: string }[];
+  slug?: string;
   hoverImage: string;
 }
 
@@ -23,13 +22,13 @@ function SingleProductCard({
   price,
   originalPrice,
   slug,
-  image,
-  hoverImage,
+  images,
+  hoverImage
 }: SingleProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
-  
+
   // ✅ Get store actions
   const { increaseCartCount, decreaseCartCount, setCartCount } = useCartStore();
 
@@ -38,9 +37,11 @@ function SingleProductCard({
   // ✅ Check if product is already in wishlist and update count
   useEffect(() => {
     const existingItems = JSON.parse(localStorage.getItem("wishlist") || "[]");
-    const alreadyAdded = existingItems.some((item: { id: string }) => item.id === id);
+    const alreadyAdded = existingItems.some(
+      (item: { id: string }) => item.id === id
+    );
     setIsAdded(alreadyAdded);
-    
+
     // ✅ Initialize cart count from localStorage
     const wishlistItems = JSON.parse(localStorage.getItem("wishlist") || "[]");
     setCartCount(wishlistItems.length);
@@ -51,18 +52,22 @@ function SingleProductCard({
     e.preventDefault();
 
     let existingItems = JSON.parse(localStorage.getItem("wishlist") || "[]");
-    const isAlreadyAdded = existingItems.some((item: { id: string }) => item.id === id);
+    const isAlreadyAdded = existingItems.some(
+      (item: { id: string }) => item.id === id
+    );
 
     if (isAlreadyAdded) {
       // 🗑️ Remove from wishlist
-      existingItems = existingItems.filter((item: { id: string }) => item.id !== id);
+      existingItems = existingItems.filter(
+        (item: { id: string }) => item.id !== id
+      );
       localStorage.setItem("wishlist", JSON.stringify(existingItems));
       setIsAdded(false);
       decreaseCartCount(); // ✅ Decrease count in store
       console.log("❌ Removed from wishlist:", name);
     } else {
       // ✅ Add to wishlist
-      const newProduct = { id, name, price, originalPrice, image , slug};
+      const newProduct = { id, name, price, originalPrice, images, slug };
       const updatedItems = [...existingItems, newProduct];
       localStorage.setItem("wishlist", JSON.stringify(updatedItems));
       setIsAdded(true);
@@ -91,7 +96,7 @@ function SingleProductCard({
           )}
 
           <Image
-            src={isHovered ? hoverImage || image : image || placeholderImage}
+            src={isHovered ? hoverImage || images : images || placeholderImage}
             alt={name}
             fill
             className={`object-contain transition-all duration-300 ${

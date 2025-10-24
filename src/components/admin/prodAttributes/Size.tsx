@@ -191,7 +191,7 @@ export default function SizePage() {
               <>
                 <span className="flex-1">{size.name}</span>
                 <span className="text-sm text-gray-500">
-                  ({size.category.name})
+                  ({size.category?.name})
                 </span>
                 <button
                   onClick={() => startEditSize(size)}

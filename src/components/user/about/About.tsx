@@ -1,10 +1,17 @@
+"use client";
 import React from "react";
 import Image from "next/image";
 import AboutMission from "./components/AboutMission";
 import AboutBranch from "./components/AboutBranch";
 import AboutProduct from "./components/AboutProduct";
 
+
+
 function About() {
+
+
+
+
   return (
     <div className="bg-white text-gray-800 mt-28 lg:mt-36">
       {/* Hero Section */}
@@ -17,7 +24,7 @@ function About() {
         />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">
           <h1 className="text-5xl md:text-5xl font-bold">ABOUT US</h1>
-          <p className="text-lg md:text-xl font-medium mt-4 max-w-6xl leading-relaxed">
+          <p   className="text-lg md:text-xl font-medium mt-4 max-w-6xl leading-relaxed">
             Welcome to{" "}
             <span className="bg-red-500 px-2 py-1 rounded-md font-semibold">
               COYOTE - House of Sports
@@ -51,9 +58,7 @@ function About() {
       {/* Mission & Vision */}
       <AboutMission />
 
-     
       <AboutBranch />
-
 
       {/* Core Values */}
       <section className="max-w-6xl mx-auto px-6 py-16 text-center">
@@ -83,7 +88,7 @@ function About() {
         </div>
       </section>
 
-       <AboutProduct />
+      <AboutProduct />
 
       {/* CTA */}
       <section className="bg-gray-900 text-white py-20 text-center">

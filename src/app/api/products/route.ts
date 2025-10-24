@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 import { uploadToCloudinary, CloudinaryUploadResult } from "@/lib/cloudinary";
+import Category from "@/models/Category";
+import SubCategory from "@/models/SubCategory";
 
 interface ProductImage {
   publicId: string;
@@ -55,31 +57,17 @@ export async function POST(req: Request) {
       tax,
       quality,
       category,
-      subcategory,
+      subCategory,
+      subSubCategory, // Add this
       size,
       colors,
+      tags,
       inStock,
       images,
-      imageRanks = [] // Add image ranks from frontend
-    }: {
-      name: string;
-      shortDescription: string;
-      detailedDescription: string;
-      price: number;
-      originalPrice: number;
-      discount: number;
-      tax: number;
-      quality: string;
-      category: string;
-      subcategory: string;
-      size: string;
-      colors: string;
-      inStock: boolean;
-      images: string[];
-      imageRanks?: number[];
+      imageRanks = []
     } = body;
 
-    // Validate required fields
+    // Validate required fields (subSubCategory is optional)
     if (
       !name ||
       !shortDescription ||
@@ -88,7 +76,7 @@ export async function POST(req: Request) {
       !originalPrice ||
       !quality ||
       !category ||
-      !subcategory ||
+      !subCategory ||
       !size ||
       !colors
     ) {
@@ -107,7 +95,7 @@ export async function POST(req: Request) {
       for (let i = 0; i < images.length; i++) {
         try {
           const imageData = images[i];
-          const rank = imageRanks[i] !== undefined ? imageRanks[i] : i; // Use provided rank or default to index
+          const rank = imageRanks[i] !== undefined ? imageRanks[i] : i;
 
           const uploadResult: CloudinaryUploadResult = await uploadToCloudinary(
             imageData
@@ -137,10 +125,15 @@ export async function POST(req: Request) {
     // Sort images by rank before saving
     uploadedImages.sort((a, b) => a.rank - b.rank);
 
-    // Create product with Cloudinary image data and auto-generated slug
-    const product = await Product.create({
+    // Process tags - ensure it's an array and remove empty strings
+    const processedTags = Array.isArray(tags)
+      ? tags.filter((tag) => tag.trim() !== "").map((tag) => tag.trim())
+      : [];
+
+    // Create product with optional subSubCategory
+    const productData: any = {
       name,
-      slug, // Add the auto-generated slug
+      slug,
       shortDescription,
       detailedDescription,
       price,
@@ -149,19 +142,68 @@ export async function POST(req: Request) {
       tax,
       quality,
       category,
-      subcategory,
+      subCategory,
       size,
       colors,
+      tags: processedTags,
       inStock,
       images: uploadedImages
-    });
-    const plainProduct = product.toObject({ getters: true });
-    plainProduct._id = product._id.toString(); // ensure it's a string
+    };
+
+    // Only add subSubCategory if provided
+    if (subSubCategory && subSubCategory.trim() !== "") {
+      productData.subSubCategory = subSubCategory;
+    }
+
+    const product = await Product.create(productData);
+
+    const productId = product._id;
+
+    // Update Category
+    if (category) {
+      await Category.findByIdAndUpdate(category, {
+        $addToSet: { products: productId }
+      });
+    }
+
+    // Update SubCategory
+    if (subCategory) {
+      await SubCategory.findByIdAndUpdate(subCategory, {
+        $addToSet: { products: productId }
+      });
+    }
+
+    // Update SubSubCategory if provided
+    if (subSubCategory) {
+      await SubCategory.findByIdAndUpdate(subSubCategory, {
+        $addToSet: { products: productId }
+      });
+    }
+
+    const populatedProduct = await Product.findById(product._id)
+      .populate("category", "name _id")
+      .populate("subCategory", "name _id")
+      .populate("subSubCategory", "name _id") // Add this
+      .populate("size", "name _id")
+      .populate("colors", "name _id")
+      .populate("quality", "name _id");
+
+    const plainProduct = populatedProduct.toObject({ getters: true });
+    plainProduct._id = populatedProduct._id.toString();
+
     return NextResponse.json(
       {
         success: true,
-        message: "Product created successfully",
-        product: plainProduct
+        message:
+          "Product created successfully and linked to category/subcategory",
+        product: plainProduct,
+        debug: {
+          receivedSubcategory: subCategory,
+          receivedSubSubcategory: subSubCategory || "Not provided",
+          storedSubcategory: product.subCategory,
+          storedSubSubcategory: product.subSubCategory || "Not stored",
+          productId: product._id.toString()
+        }
       },
       { status: 201 }
     );
