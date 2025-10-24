@@ -54,7 +54,7 @@ export async function getAllCategories() {
     // Populate nested subcategories for each category
     const populatedCategories = [];
     for (const category of categories) {
-      let populatedCategory = { ...category };
+      const populatedCategory = { ...category };
 
       if (category.subcategories?.length > 0) {
         populatedCategory.subcategories = await populateSubcategories(

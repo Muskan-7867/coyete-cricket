@@ -138,17 +138,15 @@ export async function updateSubcategory(
     }
 
     revalidatePath("/admin/subcategories");
-       const plainSubcategory = JSON.parse(JSON.stringify(subcategory));
+    const plainSubcategory = JSON.parse(JSON.stringify(subcategory));
 
     return {
       success: true,
       message: "Subcategory updated successfully",
       subcategory: plainSubcategory
     };
-  } catch  {
+  } catch {
     console.error("Error updating subcategory:");
-
-  
 
     return { success: false, error: "Failed to update subcategory" };
   }
@@ -177,7 +175,6 @@ export async function deleteSubcategory(id: string) {
   }
 }
 
-
 // export async function getSubcategoryById(id: string) {
 //   try {
 //     await connectDB();
@@ -198,22 +195,39 @@ export async function deleteSubcategory(id: string) {
 //   }
 // }
 
+export async function getSubcategoriesByCategory(categoryId: string) {
+  try {
+    await connectDB();
+
+    const subcategories = await SubCategory.find({ parentCategory: categoryId })
+      .populate("parentCategory")
+      .populate("parentSubCategory")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { success: true, subcategories };
+  } catch (error) {
+    console.error("Error fetching subcategories:", error);
+    return { success: false, error: "Failed to fetch subcategories" };
+  }
+}
+
 export async function getSubcategoryByName(name: string) {
   try {
     await connectDB();
-    
+
     if (!name) {
       return { success: false, message: "Subcategory name is required" };
     }
 
     // Decode URL-encoded characters and handle spaces/dashes
     const decodedName = decodeURIComponent(name);
-    
+
     // Find subcategory by name or slug (case insensitive)
     const subcategory = await SubCategory.findOne({
       $or: [
-        { name: { $regex: new RegExp(`^${decodedName}$`, 'i') } },
-        { slug: { $regex: new RegExp(`^${decodedName}$`, 'i') } }
+        { name: { $regex: new RegExp(`^${decodedName}$`, "i") } },
+        { slug: { $regex: new RegExp(`^${decodedName}$`, "i") } }
       ]
     })
       .populate("parentCategory")
@@ -221,9 +235,14 @@ export async function getSubcategoryByName(name: string) {
 
     if (!subcategory) {
       // Debug: log available subcategories
-      const allSubcategories = await SubCategory.find({}).select('name slug').lean();
+      const allSubcategories = await SubCategory.find({})
+        .select("name slug")
+        .lean();
       console.log("Available subcategories in DB:", allSubcategories);
-      return { success: false, message: `Subcategory "${decodedName}" not found` };
+      return {
+        success: false,
+        message: `Subcategory "${decodedName}" not found`
+      };
     }
 
     // ✅ convert to plain object
@@ -233,5 +252,32 @@ export async function getSubcategoryByName(name: string) {
   } catch (error) {
     console.error("Error fetching subcategory by name:", error);
     return { success: false, message: "Server error" };
+  }
+}
+
+export async function getSubSubcategories(subCategoryId: string) {
+  try {
+    if (!subCategoryId) {
+      return { success: false, error: "Subcategory ID is required" };
+    }
+
+    await connectDB();
+
+    // Fetch the parent subcategory and populate its subcategories
+    const parentSubCategory = await SubCategory.findById(subCategoryId)
+      .populate("subcategories") // Assuming `subcategories` is an array of ObjectId
+      .lean();
+
+    if (!parentSubCategory) {
+      return { success: false, error: "Parent subcategory not found" };
+    }
+
+    // Return the array of sub-subcategories
+    const subSubcategories = parentSubCategory.subcategories || [];
+
+    return { success: true, subcategories: subSubcategories };
+  } catch (error) {
+    console.error("Error fetching sub-subcategories:", error);
+    return { success: false, error: "Failed to fetch sub-subcategories" };
   }
 }

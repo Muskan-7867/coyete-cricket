@@ -2,7 +2,6 @@
 import Product from "@/models/Product";
 import connectDB from "../db";
 import Category from "@/models/Category";
-import SubCategory from "@/models/SubCategory";
 
 export async function getProductsByCategory(categoryId: string) {
   try {

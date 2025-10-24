@@ -3,7 +3,7 @@ import { getQualitiesAction } from "../actions/qualityActions";
 import { getColorsAction } from "../actions/colorActions";
 import { getSizesAction } from "../actions/sizeAction";
 import { getAllCategories } from "../actions/categoryActions";
-import { getAllSubcategories } from "../actions/subCategoryActions";
+import { getAllSubcategories, getSubcategoriesByCategory } from "../actions/subCategoryActions";
 
 export const useCategories = () => {
   return useQuery({
@@ -36,12 +36,17 @@ export const useQuality = () => {
     staleTime: 1000 * 60 * 5
   });
 };
-
-export const useSubcategories = (id: string) => {
-  console.log("from query", id);
+export const useSubcategories = (categoryId: string) => {
   return useQuery({
-    queryKey: ["subcategories", id],
-    queryFn: () => getAllSubcategories(id),
+    queryKey: ["subcategories", categoryId],
+    queryFn: async () => {
+      if (!categoryId) return [];
+      const res = await getSubcategoriesByCategory(categoryId);
+      if (res.success) return res.subcategories;
+      return [];
+    },
+    enabled: !!categoryId, // only fetch if categoryId exists
     staleTime: 1000 * 60 * 5
   });
 };
+
