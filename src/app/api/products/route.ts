@@ -218,3 +218,41 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    await connectDB();
+
+    // Fetch all products and populate referenced fields
+    const products = await Product.find()
+      .populate("category", "name _id")
+      .populate("subCategory", "name _id")
+      .populate("subSubCategory", "name _id")
+      .populate("size", "name _id")
+      .populate("colors", "name _id")
+      .populate("quality", "name _id")
+      .sort({ createdAt: -1 }); // Optional: sort newest first
+
+    // Convert _id fields to string for frontend
+    const plainProducts = products.map((product) => {
+      const p = product.toObject({ getters: true });
+      p._id = product._id.toString();
+      return p;
+    });
+    console.log("from getapi", plainProducts);
+
+    return NextResponse.json(
+      { success: true, products: plainProducts },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error instanceof Error ? error.message : "Server error"
+      },
+      { status: 500 }
+    );
+  }
+}
