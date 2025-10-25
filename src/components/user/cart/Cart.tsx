@@ -50,7 +50,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 mt-20">
+    <div className="max-w-5xl mx-auto p-6 mt-28 lg:mt-32">
       <h2 className="text-2xl font-bold mb-6">My Wishlist</h2>
 
       <div className="space-y-4">

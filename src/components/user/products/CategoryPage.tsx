@@ -26,7 +26,7 @@ export default function CategoryPage({
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   return (
-    <div className="min-h-screen mt-26 lg:mt-32">
+    <div className="min-h-screen mt-26 lg:mt-34">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -85,6 +85,7 @@ export default function CategoryPage({
                       originalPrice={product.originalPrice}
                       slug={product.slug}
                       hoverImage={product.images?.[1]?.url}
+                      categoryName={categoryName}
                     />
                   ))}
                 </div>

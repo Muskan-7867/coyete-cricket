@@ -269,7 +269,7 @@ function FilterSidebar({
           <>
             <motion.div
               key="backdrop"
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 backdrop-blur-md bg-opacity-50 z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
@@ -312,7 +312,7 @@ function FilterSidebar({
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block lg:w-1/4">
-        <div className="bg-white rounded-lg p-6 sticky top-4 flex flex-col h-[90vh]">
+        <div className=" rounded-lg pt-4 sticky top-4 flex flex-col h-[90vh]">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Filter by</h2>
             {hasActiveFilters && (
