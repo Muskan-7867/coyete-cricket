@@ -44,16 +44,18 @@ const SubCategoryList = ({
     e.stopPropagation();
     e.preventDefault();
 
-    setOpenSubIds([]);
-
-    router.push(`/product/category${currentPath}`);
-
     if (hasChildren && isMobile) {
+      // Toggle subcategory open/close on mobile
       setOpenSubIds((prev) =>
         prev.includes(subcategory._id)
           ? prev.filter((x) => x !== subcategory._id)
           : [...prev, subcategory._id]
       );
+    } else {
+      // Navigate for leaf categories
+      router.push(`/product/category${currentPath}`);
+      // Close all open subcategories
+      setOpenSubIds([]);
     }
   };
 
@@ -160,7 +162,16 @@ export const CategoryMenu = ({
   const visibleMenus = menusWithSortedSubcategories.slice(0, 7);
   const remainingMenus = menusWithSortedSubcategories.slice(7);
 
-  const handleCategoryClick = (category: CategoryT) => {
+  const handleCategoryClick = (category: CategoryT, hasChildren: boolean) => {
+    if (isMobile && hasChildren) {
+      // Toggle open state for mobile
+      setOpenIds((prev) =>
+        prev.includes(category._id)
+          ? prev.filter((id) => id !== category._id)
+          : [...prev, category._id]
+      );
+      return;
+    }
     setOpenIds([]);
     setMoreOpen(false);
 
@@ -229,7 +240,7 @@ export const CategoryMenu = ({
             }
           >
             <button
-              onClick={() => handleCategoryClick(menu)}
+              onClick={() => handleCategoryClick(menu, hasChildren)}
               className={`flex items-center text-lg font-normal transition-colors py-2 rounded-lg ${
                 isActive
                   ? "text-blue-600 font-semibold"
@@ -237,10 +248,12 @@ export const CategoryMenu = ({
               }`}
             >
               {menu.name}
-              {hasChildren && !isMobile && (
+              {hasChildren && (
                 <ChevronDown
                   className={`w-4 h-4 ml-1 transition-transform ${
-                    openIds.includes(menu._id) ? "rotate-180" : ""
+                    openIds.includes(menu._id)
+                      ? "rotate-180 text-blue-600"
+                      : "text-gray-400"
                   }`}
                 />
               )}
@@ -256,14 +269,18 @@ export const CategoryMenu = ({
                 onMouseEnter={() => handleMouseEnter(menu._id)}
                 onMouseLeave={() => handleMouseLeave(menu._id)}
               >
-                <SubCategoryList
-                  subcategories={menu.subcategories}
-                  parentPath={`/${menu.name}`}
-                />
+                {hasChildren &&
+                  (isMobile ? openIds.includes(menu._id) : !isMobile) && (
+                    <SubCategoryList
+                      subcategories={menu.subcategories}
+                      isMobile={isMobile}
+                      parentPath={`/${menu.name}`}
+                    />
+                  )}
               </div>
             )}
 
-            {hasChildren && isMobile && (
+            {hasChildren && isMobile && openIds.includes(menu._id) && (
               <SubCategoryList
                 subcategories={menu.subcategories}
                 isMobile
@@ -317,7 +334,7 @@ export const CategoryMenu = ({
                     }
                   >
                     <button
-                      onClick={() => handleCategoryClick(menu)}
+                      onClick={() => handleCategoryClick(menu, hasChildren)}
                       className={`flex items-center justify-between w-full text-left px-2 py-1.5 rounded-md font-medium transition-colors ${
                         isActive
                           ? "bg-blue-100 text-blue-700"

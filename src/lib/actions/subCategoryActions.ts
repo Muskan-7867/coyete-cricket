@@ -73,19 +73,28 @@ export async function createSubcategory(data: {
     await subcategory.populate("parentCategory");
     await subcategory.populate("parentSubCategory");
 
-    revalidatePath("/admin/subcategories");
+    revalidatePath("/admin/categories"); // Make sure this path is correct
 
     return {
       success: true,
       message: parentSubCategory
         ? "Nested subcategory created successfully"
         : "Subcategory created successfully",
-      subcategory
+      subcategory: {
+        _id: subcategory._id.toString(),
+        name: subcategory.name,
+        rank: subcategory.rank,
+        parentCategory: subcategory.parentCategory._id.toString(),
+        parentSubCategory: subcategory.parentSubCategory?._id?.toString(),
+        subcategories: []
+      }
     };
-  } catch {
-    console.error("Error creating subcategory:");
-
-    return { success: false, error: "Failed to create subcategory" };
+  } catch (error) {
+    console.error("Error creating subcategory:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to create subcategory"
+    };
   }
 }
 
@@ -205,7 +214,10 @@ export async function getSubcategoriesByCategory(categoryId: string) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return { success: true, subcategories };
+    return {
+      success: true,
+      subcategories: JSON.parse(JSON.stringify(subcategories))
+    };
   } catch (error) {
     console.error("Error fetching subcategories:", error);
     return { success: false, error: "Failed to fetch subcategories" };

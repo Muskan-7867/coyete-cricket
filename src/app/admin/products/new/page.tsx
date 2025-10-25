@@ -19,6 +19,7 @@ import {
 } from "@/lib/queries/query";
 import { getSubSubcategories } from "@/lib/actions/subCategoryActions";
 import { getSizesByCategory } from "@/lib/actions/sizeAction";
+import toast from "react-hot-toast";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -238,11 +239,11 @@ export default function AddProductPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create product");
 
-      alert("✅ Product created successfully!");
+      toast.success("✅ Product created successfully!");
       router.push("/admin/products");
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to create product");
+      toast.error("❌ Failed to create product");
     } finally {
       setIsSubmitting(false);
     }

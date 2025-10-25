@@ -23,6 +23,8 @@ import {
   deleteSubcategory,
   updateSubcategory
 } from "@/lib/actions/subCategoryActions";
+import { setLazyProp } from "next/dist/server/api-utils";
+import toast from "react-hot-toast";
 
 type SubCategoryT = {
   _id: string;
@@ -41,38 +43,50 @@ type CategoryT = {
   subcategories: SubCategoryT[];
 };
 
-export default function CategoryManagement({ initialCategories }: {initialCategories?: CategoryT[] }) {
-  const [categories, setCategories] = useState<CategoryT[]>(initialCategories || []);
+export default function CategoryManagement({
+  initialCategories
+}: {
+  initialCategories?: CategoryT[];
+}) {
+  const [categories, setCategories] = useState<CategoryT[]>(
+    initialCategories || []
+  );
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
   const [subcategoryName, setSubcategoryName] = useState("");
   const [selectedParentCategory, setSelectedParentCategory] = useState("");
-  const [editingCategory, setEditingCategory] = useState<CategoryT | null>(null);
-  const [editingSubcategory, setEditingSubcategory] = useState<SubCategoryT | null>(null);
-  const [selectedParentSubcategory, setSelectedParentSubcategory] = useState("");
-  const [selectedParentSubcategoryName, setSelectedParentSubcategoryName] = useState("");
-  const [selectedParentCategoryName, setSelectedParentCategoryName] = useState("");
+  const [editingCategory, setEditingCategory] = useState<CategoryT | null>(
+    null
+  );
+  const [editingSubcategory, setEditingSubcategory] =
+    useState<SubCategoryT | null>(null);
+  const [selectedParentSubcategory, setSelectedParentSubcategory] =
+    useState("");
+  const [selectedParentSubcategoryName, setSelectedParentSubcategoryName] =
+    useState("");
+  const [selectedParentCategoryName, setSelectedParentCategoryName] =
+    useState("");
   const [categoryRank, setCategoryRank] = useState<number>(0);
   const [subcategoryRank, setSubcategoryRank] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-// Fetch categories function
-const fetchCategories = async () => {
-  try {
-    setLoading(true);
-    const result = await getAllCategories();
-    if (result.success) {
-      setCategories(result.categories || []);
-    } else {
-      console.error("Failed to fetch categories:", result.error);
+  // Fetch categories function
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const result = await getAllCategories();
+      if (result.success) {
+        setCategories(result.categories || []);
+      } else {
+        console.error("Failed to fetch categories:", result.error);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching categories:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Load categories on initial render
   useEffect(() => {
@@ -138,13 +152,23 @@ const fetchCategories = async () => {
       const result = await createCategory(formData);
 
       if (result.success) {
+        setCategories((prev) => [
+          ...prev,
+          {
+            _id: result.category._id,
+            name: categoryName,
+            description: categoryDescription,
+            rank: categoryRank,
+            subcategories: []
+          }
+        ]);
         setCategoryName("");
         setCategoryDescription("");
         setCategoryRank(0);
         await fetchCategories(); // Refresh the list
-        alert("Category created successfully!");
+       toast.success("Category created successfully!");
       } else {
-        alert(result.error || "Failed to create category");
+          toast.error(result.error || "Failed to create category");
       }
     } catch (err) {
       console.error(err);
@@ -171,13 +195,13 @@ const fetchCategories = async () => {
       if (result.success) {
         cancelEdit();
         await fetchCategories(); // Refresh the list
-        alert("Category updated successfully!");
+        toast.success("Category updated successfully!");
       } else {
-        alert(result.error || "Failed to update category");
+        toast.error(result.error || "Failed to update category");
       }
     } catch (err) {
       console.error(err);
-      alert("Error updating category");
+      toast.error("Error updating category");
     } finally {
       setLoading(false);
     }
@@ -185,66 +209,71 @@ const fetchCategories = async () => {
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (!confirm("Are you sure you want to delete this category?")) return;
+      setCategories((prev) => prev.filter((cat) => cat._id !== categoryId));
     setLoading(true);
 
     try {
       const result = await deleteCategory(categoryId);
 
       if (result.success) {
-        await fetchCategories(); // Refresh the list
-        alert("Category deleted successfully!");
+      
+        toast.success("Category deleted successfully!");
       } else {
-        alert(result.error || "Failed to delete category");
+        toast.error(result.error || "Failed to delete category");
+        await fetchCategories();
       }
     } catch (err) {
       console.error(err);
-      alert("Error deleting category");
+      toast.error("Error deleting category");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateSubcategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!selectedParentCategory && !selectedParentSubcategory) {
-      alert("Please select a parent category");
-      return;
+const handleCreateSubcategory = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validation
+  if (!selectedParentCategory && !selectedParentSubcategory) {
+    alert("Please select a parent category");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const payload = {
+      name: subcategoryName,
+      parentCategory: selectedParentCategory,
+      rank: subcategoryRank,
+      parentSubCategory: selectedParentSubcategory || undefined
+    };
+
+    const result = await createSubcategory(payload);
+
+    if (result.success) {
+      // Reset form
+      setSubcategoryName("");
+      setSubcategoryRank(0);
+      setSelectedParentCategory("");
+      setSelectedParentSubcategory("");
+      setSelectedParentCategoryName("");
+      setSelectedParentSubcategoryName("");
+      
+      // Refresh the categories list
+      await fetchCategories();
+      
+      alert(result.message || "Subcategory created successfully!");
+    } else {
+      alert(result.error || "Failed to create subcategory");
     }
-
-    setLoading(true);
-
-    try {
-      const payload = {
-        name: subcategoryName,
-        parentCategory: selectedParentCategory,
-        rank: subcategoryRank,
-        parentSubCategory: selectedParentSubcategory || undefined
-      };
-
-      const result = await createSubcategory(payload);
-
-      if (result.success) {
-        // Reset form
-        setSubcategoryName("");
-        setSubcategoryRank(0);
-        setSelectedParentCategory("");
-        setSelectedParentSubcategory("");
-        setSelectedParentCategoryName("");
-        setSelectedParentSubcategoryName("");
-        await fetchCategories(); // Refresh the list
-        alert(result.message || "Subcategory created successfully!");
-      } else {
-        alert(result.error || "Failed to create subcategory");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error creating subcategory");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Error creating subcategory");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleUpdateSubcategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,19 +308,34 @@ const fetchCategories = async () => {
   const handleDeleteSubcategory = async (subcategoryId: string) => {
     if (!confirm("Are you sure you want to delete this subcategory?")) return;
     setLoading(true);
+    setCategories((prevCategories) => {
+    const removeSubcategory = (subs: SubCategoryT[]): SubCategoryT[] =>
+      subs.filter((sub) => {
+        if (sub._id === subcategoryId) return false;
+        if (sub.subcategories) sub.subcategories = removeSubcategory(sub.subcategories);
+        return true;
+      });
+
+    return prevCategories.map((cat) => ({
+      ...cat,
+      subcategories: removeSubcategory(cat.subcategories)
+    }));
+  });
+
 
     try {
       const result = await deleteSubcategory(subcategoryId);
 
       if (result.success) {
-        await fetchCategories();
-        alert("Subcategory deleted successfully!");
+        toast.success("Subcategory deleted successfully!");
       } else {
-        alert(result.error || "Failed to delete subcategory");
+        toast.error(result.error || "Failed to delete subcategory");
+        await fetchCategories();
+
       }
     } catch (err) {
       console.error(err);
-      alert("Error deleting subcategory");
+      toast.error("Error deleting subcategory");
     } finally {
       setLoading(false);
     }
@@ -313,15 +357,18 @@ const fetchCategories = async () => {
       if (result.success) {
         await fetchCategories();
       } else {
-        alert(result.error || "Failed to update category rank");
+        toast.error(result.error || "Failed to update category rank");
       }
     } catch (err) {
       console.error(err);
-      alert("Error updating category rank");
+      toast.error("Error updating category rank");
     }
   };
 
-  const updateSubcategoryRank = async (subcategoryId: string, newRank: number) => {
+  const updateSubcategoryRank = async (
+    subcategoryId: string,
+    newRank: number
+  ) => {
     try {
       const currentSub = findSubcategoryById(subcategoryId, categories);
       if (!currentSub) return alert("Subcategory not found");
@@ -338,11 +385,11 @@ const fetchCategories = async () => {
       if (result.success) {
         await fetchCategories();
       } else {
-        alert(result.error || "Failed to update subcategory rank");
+        toast.error(result.error || "Failed to update subcategory rank");
       }
     } catch (err) {
       console.error(err);
-      alert("Error updating subcategory rank");
+      toast.error("Error updating subcategory rank");
     }
   };
 
@@ -544,7 +591,7 @@ const fetchCategories = async () => {
         >
           <div className="flex items-center space-x-2 flex-1 py-3">
             {sub.subcategories && sub.subcategories.length > 0 ? (
-              <button 
+              <button
                 onClick={() => toggleItem(sub._id)}
                 className="p-1 hover:bg-gray-100 rounded"
               >
@@ -652,12 +699,14 @@ const fetchCategories = async () => {
   };
 
   // Add this useEffect to debug state changes
-useEffect(() => {
-  console.log("Categories updated:", categories);
-}, [categories]);
+  useEffect(() => {
+    console.log("Categories updated:", categories);
+  }, [categories]);
 
   // Sort categories by rank
-  const sortedCategories = [...categories].sort((a, b) => (a.rank || 0) - (b.rank || 0));
+  const sortedCategories = [...categories].sort(
+    (a, b) => (a.rank || 0) - (b.rank || 0)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">

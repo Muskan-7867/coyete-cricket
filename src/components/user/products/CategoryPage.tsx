@@ -13,11 +13,13 @@ interface Product {
 }
 
 interface CategoryPageProps {
+  categoryId: string;
   categoryName: string;
   products: Product[];
 }
 
 export default function CategoryPage({
+  categoryId,
   categoryName,
   products
 }: CategoryPageProps) {
@@ -66,6 +68,7 @@ export default function CategoryPage({
           <FilterSidebar
             isMobileFilterOpen={isMobileFilterOpen}
             setIsMobileFilterOpen={setIsMobileFilterOpen}
+            currentCategoryId={categoryId}
           />
 
           <div className="lg:w-3/4">

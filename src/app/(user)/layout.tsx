@@ -1,6 +1,6 @@
 import Navbar from "@/components/user/navbar/Navbar";
 import Footer from "@/components/user/footer/Footer";
-import React from "react";
+import React, { Suspense } from "react";
 
 export default function UserLayout({
   children,
@@ -9,7 +9,9 @@ export default function UserLayout({
 }) {
   return (
     <div>
-      <Navbar />
+       <Suspense fallback={<div>Loading navbar...</div>}>
+          <Navbar />
+        </Suspense>
       {children}
       <Footer />
     </div>

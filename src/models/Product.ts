@@ -80,7 +80,7 @@ const ProductSchema: Schema = new Schema(
       type: String, 
       required: [true, 'Color is required'] 
     },
-    tags: { // Add tags field
+    tags: { 
       type: [String],
       default: []
     },

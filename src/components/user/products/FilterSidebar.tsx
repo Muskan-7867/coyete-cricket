@@ -1,13 +1,15 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useState, useTransition, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import React, { useState, useEffect, useCallback } from "react";
 
-import { CategoryT, ColorT, QualityT, SizeT } from "@/types";
+import { CategoryT, ColorT, QualityT, SizeT, SubCategoryT } from "@/types";
 import {
   useCategories,
   useColors,
   useQuality,
-  useSizes
+  useSizesByCategory,
+  useSubcategories
 } from "@/lib/queries/query";
 
 // Define the filter state type
@@ -21,172 +23,154 @@ interface FilterState {
 interface FilterSidebarProps {
   isMobileFilterOpen: boolean;
   setIsMobileFilterOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  onProductsUpdate?: (products: any[]) => void;
-  onLoadingStateChange?: (isLoading: boolean) => void;
-  onFiltersChange?: (filters: FilterState) => void;
-  currentCategory?: string;
-  allProductsCount?: number;
-  filteredProductsCount?: number;
+  currentCategoryId?: string;
   subcategories?: string[];
-  selectedFilters?: FilterState;
+  initialFilters?: FilterState;
 }
 
 function FilterSidebar({
   isMobileFilterOpen,
   setIsMobileFilterOpen,
-  onProductsUpdate,
-  onLoadingStateChange,
-  onFiltersChange,
-  currentCategory,
-  allProductsCount = 0,
-  filteredProductsCount = 0,
+  currentCategoryId,
   subcategories = [],
-  selectedFilters = {
-    subcategories: [],
-    size: [],
-    color: [],
-    qualityName: []
-  }
+  initialFilters = { subcategories: [], size: [], color: [], qualityName: [] }
 }: FilterSidebarProps) {
-  // ✅ Fetch data using React Query
-  const { data: categoriesData, isLoading: categoriesLoading } =
-    useCategories();
-  const { data: sizesData, isLoading: sizesLoading } = useSizes();
-  const { data: colorsData, isLoading: colorsLoading } = useColors();
-  const { data: qualitiesData, isLoading: qualitiesLoading } = useQuality();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  // Fetch data using React Query
+  const { data: categoriesData } = useCategories();
+  const { data: sizesData } = useSizesByCategory(currentCategoryId);
+  const { data: colorsData } = useColors();
+  const { data: qualitiesData } = useQuality();
+  const { data: subcategoriesData } = useSubcategories(currentCategoryId || "");
 
-  const [isPending, startTransition] = useTransition();
+  // Initialize local state from URL params or initialFilters
+  const [localFilters, setLocalFilters] = useState<FilterState>(initialFilters);
 
-  // ✅ Use the same filter state structure as parent
-  const [localFilters, setLocalFilters] =
-    useState<FilterState>(selectedFilters);
+  // Function to update URL with current filters
+  const updateURLFilters = useCallback((filters: FilterState) => {
+    const params = new URLSearchParams();
+    
+    // Add filters to params only if they have values
+    if (filters.subcategories.length > 0) {
+      params.set('subcategories', filters.subcategories.join(','));
+    }
+    if (filters.size.length > 0) {
+      params.set('sizes', filters.size.join(','));
+    }
+    if (filters.color.length > 0) {
+      params.set('colors', filters.color.join(','));
+    }
+    if (filters.qualityName.length > 0) {
+      params.set('qualities', filters.qualityName.join(','));
+    }
+    
+    // Update URL without page reload (shallow routing)
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.push(newUrl, { scroll: false });
+  }, [router, pathname]);
 
-  // ✅ Notify parent when filters change
-  const updateFilters = useCallback(
-    (newFilters: FilterState) => {
-      setLocalFilters(newFilters);
-      onFiltersChange?.(newFilters);
-    },
-    [onFiltersChange]
-  );
+  // Update local filters only when URL params change (not on initial render)
+  useEffect(() => {
+    const newFilters: FilterState = {
+      subcategories: [],
+      size: [],
+      color: [],
+      qualityName: []
+    };
+    
+    // Get filters from URL
+    const subcategoriesParam = searchParams.get('subcategories');
+    const sizesParam = searchParams.get('sizes');
+    const colorsParam = searchParams.get('colors');
+    const qualitiesParam = searchParams.get('qualities');
+    
+    if (subcategoriesParam) {
+      newFilters.subcategories = subcategoriesParam.split(',');
+    }
+    if (sizesParam) {
+      newFilters.size = sizesParam.split(',');
+    }
+    if (colorsParam) {
+      newFilters.color = colorsParam.split(',');
+    }
+    if (qualitiesParam) {
+      newFilters.qualityName = qualitiesParam.split(',');
+    }
+    
+    // Only update if filters actually changed to prevent infinite loop
+    setLocalFilters(prev => {
+      const isSame = 
+        JSON.stringify(prev.subcategories) === JSON.stringify(newFilters.subcategories) &&
+        JSON.stringify(prev.size) === JSON.stringify(newFilters.size) &&
+        JSON.stringify(prev.color) === JSON.stringify(newFilters.color) &&
+        JSON.stringify(prev.qualityName) === JSON.stringify(newFilters.qualityName);
+      
+      return isSame ? prev : newFilters;
+    });
+  }, [searchParams]); // Only depend on searchParams
 
-  // ✅ Toggle dropdown
-  const toggleDropdown = (category: keyof typeof openDropdowns) => {
-    setOpenDropdowns((prev) => ({
+  // Toggle checkbox handler
+  const toggleFilter = useCallback((category: keyof FilterState, value: string) => {
+    setLocalFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [category]: prev[category].includes(value)
+          ? prev[category].filter((i) => i !== value)
+          : [...prev[category], value]
+      };
+      
+      // Update URL after state update
+      setTimeout(() => updateURLFilters(newFilters), 0);
+      return newFilters;
+    });
+  }, [updateURLFilters]);
+
+  // Clear filters
+  const clearFilter = useCallback((category?: keyof FilterState) => {
+    setLocalFilters(prev => {
+      let newFilters: FilterState;
+      
+      if (category) {
+        newFilters = { ...prev, [category]: [] };
+      } else {
+        newFilters = { subcategories: [], size: [], color: [], qualityName: [] };
+      }
+      
+      // Update URL after state update
+      setTimeout(() => updateURLFilters(newFilters), 0);
+      return newFilters;
+    });
+  }, [updateURLFilters]);
+
+  // Rest of your component code...
+  const [openDropdowns, setOpenDropdowns] = useState({
+    subcategories: false,
+    size: false,
+    color: false,
+    qualityName: false
+  });
+  
+  const toggleDropdown = useCallback((category: keyof typeof openDropdowns) => {
+    setOpenDropdowns(prev => ({
       ...prev,
       [category]: !prev[category]
     }));
-  };
+  }, []);
 
-  // ✅ Toggle checkbox handler
-  const toggleFilter = (category: keyof FilterState, value: string) => {
-    const newFilters = {
-      ...localFilters,
-      [category]: localFilters[category].includes(value)
-        ? localFilters[category].filter((i) => i !== value)
-        : [...localFilters[category], value]
-    };
-
-    updateFilters(newFilters);
-  };
-
-  // ✅ Clear filters
-  const clearFilter = (category?: keyof FilterState) => {
-    if (category) {
-      const newFilters = {
-        ...localFilters,
-        [category]: []
-      };
-      updateFilters(newFilters);
-    } else {
-      const newFilters = {
-        subcategories: [],
-        size: [],
-        color: [],
-        qualityName: []
-      };
-      updateFilters(newFilters);
-    }
-  };
-
-  // ✅ Fetch filtered products
-  const fetchFilteredProducts = useCallback(async () => {
-    const hasActiveFilters = Object.values(localFilters).some(
-      (filterArray) => filterArray.length > 0
-    );
-
-    if (!hasActiveFilters) {
-      console.log("No active filters, showing all products");
-      onProductsUpdate?.([]);
-      return;
-    }
-
-    const filters = {
-      subcategories: localFilters.subcategories,
-      sizes: localFilters.size,
-      colors: localFilters.color,
-      qualities: localFilters.qualityName
-    };
-
-    console.log("Selected filters:", localFilters);
-    console.log("Current category:", currentCategory);
-    console.log("Sending filters to API:", filters);
-
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/products/filter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filters, currentCategory })
-        }).then((r) => r.json());
-
-        console.log("Filter API response:", res);
-
-        if (res.success) {
-          console.log(`Received ${res.products.length} filtered products`);
-          onProductsUpdate?.(res.products || []);
-        } else {
-          console.error("Failed to fetch products:", res.error);
-          onProductsUpdate?.([]);
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        onProductsUpdate?.([]);
-      }
-    });
-  }, [localFilters, currentCategory, onProductsUpdate]);
-
-  // ✅ Apply filters and close mobile sidebar
-  const applyFiltersAndClose = () => {
-    fetchFilteredProducts();
-    setIsMobileFilterOpen(false);
-  };
-
-  // ✅ Auto-apply filters when they change (with debounce)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchFilteredProducts();
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [localFilters, fetchFilteredProducts]);
-
-  // ✅ Notify parent component about loading state
-  useEffect(() => {
-    onLoadingStateChange?.(isPending);
-  }, [isPending, onLoadingStateChange]);
-
-  // ✅ Dynamic filter options
+  // Dynamic filter options
   const filterOptions = {
     subcategories:
       subcategories.length > 0
         ? subcategories
+        : Array.isArray(subcategoriesData)
+        ? subcategoriesData.map((sub: SubCategoryT) => sub.name)
         : Array.isArray(categoriesData)
         ? categoriesData.map((c: CategoryT) => c.name)
         : [],
-    size: Array.isArray(sizesData?.data)
-      ? sizesData.data.map((s: SizeT) => s.name)
-      : [],
+    size: Array.isArray(sizesData) ? sizesData.map((s: SizeT) => s.name) : [],
     color: Array.isArray(colorsData?.data)
       ? colorsData.data.map((c: ColorT) => c.name)
       : [],
@@ -195,26 +179,21 @@ function FilterSidebar({
       : []
   };
 
-  // ✅ State for dropdown open/close
-  const [openDropdowns, setOpenDropdowns] = useState({
-    subcategories: false,
-    size: false,
-    color: false,
-    qualityName: false
-  });
-
-  // ✅ Check if any filters are active
   const hasActiveFilters = Object.values(localFilters).some(
     (filterArray) => filterArray.length > 0
   );
 
-  // ✅ Render dropdown section
+  const getSizeFilterMessage = () => {
+    if (!currentCategoryId) return "Select a category to see sizes";
+    if (filterOptions.size.length === 0) return "No sizes available for this category";
+    return "";
+  };
+
   const renderDropdownSection = (
     category: keyof typeof filterOptions,
     title: string
   ) => (
     <div key={category} className="mb-4 border-b border-gray-200 pb-4">
-      {/* Dropdown Header */}
       <button
         onClick={() => toggleDropdown(category)}
         className="flex justify-between items-center w-full py-2 text-left focus:outline-none"
@@ -228,16 +207,10 @@ function FilterSidebar({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
-      {/* Dropdown Content */}
       <AnimatePresence>
         {openDropdowns[category] && (
           <motion.div
@@ -264,12 +237,7 @@ function FilterSidebar({
 
               {filterOptions[category].length === 0 ? (
                 <p className="text-sm text-gray-400 py-2">
-                  {categoriesLoading ||
-                  sizesLoading ||
-                  colorsLoading ||
-                  qualitiesLoading
-                    ? "Loading..."
-                    : "No options available"}
+                  {category === "size" ? getSizeFilterMessage() : "No options available"}
                 </p>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-hide">
@@ -281,9 +249,7 @@ function FilterSidebar({
                         onChange={() => toggleFilter(category, option)}
                         className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                       />
-                      <span className="ml-3 text-sm text-gray-700">
-                        {option}
-                      </span>
+                      <span className="ml-3 text-sm text-gray-700">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -297,7 +263,7 @@ function FilterSidebar({
 
   return (
     <>
-      {/* ✅ Mobile Sidebar */}
+      {/* Mobile Sidebar */}
       <AnimatePresence>
         {isMobileFilterOpen && (
           <>
@@ -320,17 +286,6 @@ function FilterSidebar({
               transition={{ type: "tween", duration: 0.3 }}
             >
               <div className="px-6 pt-2 flex flex-col h-full">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-2 border-b py-4">
-                  <h2 className="text-lg font-semibold">Filters</h2>
-                  <button
-                    onClick={() => setIsMobileFilterOpen(false)}
-                    className="p-2 hover:bg-gray-100 rounded-full"
-                  >
-                    ✕
-                  </button>
-                </div>
-
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-lg font-semibold">Filter by</h2>
                   {hasActiveFilters && (
@@ -343,32 +298,11 @@ function FilterSidebar({
                   )}
                 </div>
 
-                {/* Filter result summary */}
-                {hasActiveFilters && (
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      Showing {filteredProductsCount} of {allProductsCount}{" "}
-                      products
-                    </p>
-                  </div>
-                )}
-
-                {/* Filter Sections with Dropdowns */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
                   {renderDropdownSection("subcategories", "Subcategories")}
                   {renderDropdownSection("size", "Size")}
                   {renderDropdownSection("color", "Color")}
                   {renderDropdownSection("qualityName", "Quality")}
-                </div>
-
-                <div className="mt-auto py-4 border-t">
-                  <button
-                    onClick={applyFiltersAndClose}
-                    disabled={isPending}
-                    className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPending ? "Applying..." : "Apply Filters"}
-                  </button>
                 </div>
               </div>
             </motion.div>
@@ -376,7 +310,7 @@ function FilterSidebar({
         )}
       </AnimatePresence>
 
-      {/* ✅ Desktop Sidebar */}
+      {/* Desktop Sidebar */}
       <div className="hidden lg:block lg:w-1/4">
         <div className="bg-white rounded-lg p-6 sticky top-4 flex flex-col h-[90vh]">
           <div className="flex justify-between items-center mb-6">
@@ -391,30 +325,11 @@ function FilterSidebar({
             )}
           </div>
 
-          {/* Filter result summary */}
-          {hasActiveFilters && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                Showing {filteredProductsCount} of {allProductsCount} products
-              </p>
-            </div>
-          )}
-
-          {/* Filter Sections with Dropdowns */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             {renderDropdownSection("subcategories", "Subcategories")}
             {renderDropdownSection("size", "Size")}
             {renderDropdownSection("color", "Color")}
             {renderDropdownSection("qualityName", "Quality")}
-          </div>
-
-          {/* ✅ Filter Status */}
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              {hasActiveFilters
-                ? `${Object.values(localFilters).flat().length} filters active`
-                : "No filters applied"}
-            </p>
           </div>
         </div>
       </div>

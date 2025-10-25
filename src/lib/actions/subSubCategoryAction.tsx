@@ -1,61 +1,64 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import SubSubCategory from "@/models/SubSubCategory";
+import SubSubCategory from "@/models/SubSubCategory"; // Your SubSubCategory model
 import connectDB from "../db";
-import SubCategory from "@/models/SubCategory";
 
-// lib/actions/subSubCategoryAction.ts
-export async function createSubSubCategory({
-  name,
-  rank,
-  parentSubcategoryId
-}: any) {
+export async function createSubSubcategory(payload: {
+  name: string;
+  parentCategory: string;
+  parentSubCategory: string;
+  rank: number;
+}) {
   try {
     await connectDB();
 
-    // 1️⃣ Create new SubSubCategory
-    const newSubSubCategory = await SubSubCategory.create({
-      name,
-      rank,
-      parentSubcategory: parentSubcategoryId
+    const newSubSubcategory = new SubSubCategory({
+      name: payload.name,
+      parentCategory: payload.parentCategory,
+      parentSubCategory: payload.parentSubCategory,
+      rank: payload.rank
     });
 
-    // 2️⃣ Push into parent SubCategory
-    await SubCategory.findByIdAndUpdate(parentSubcategoryId, {
-      $push: { subsubcategories: newSubSubCategory._id }
-    });
+    await newSubSubcategory.save();
+    revalidatePath("/admin/categories");
 
-    revalidatePath("/admin/categories"); // optional if you’re using ISR
-    return { success: true, subsubcategory: newSubSubCategory };
+    return {
+      success: true,
+      message: "Sub-subcategory created successfully",
+      subSubcategory: newSubSubcategory
+    };
   } catch (error) {
     console.error("Error creating sub-subcategory:", error);
-    return { success: false, error: "Failed to create sub-subcategory" };
+    return {
+      success: false,
+      error: "Failed to create sub-subcategory"
+    };
   }
 }
 
-export async function updateSubSubCategory(
+export async function updateSubSubcategory(
   id: string,
-  formData: {
+  payload: {
     name: string;
+    parentCategory: string;
+    parentSubCategory: string;
     rank: number;
   }
 ) {
   try {
     await connectDB();
 
-    const { name, rank } = formData;
-
-    const subSubCategory = await SubSubCategory.findByIdAndUpdate(
+    const updatedSubSubcategory = await SubSubCategory.findByIdAndUpdate(
       id,
       {
-        name,
-        rank: rank || 0
+        name: payload.name,
+        rank: payload.rank
       },
       { new: true }
     );
 
-    if (!subSubCategory) {
+    if (!updatedSubSubcategory) {
       return {
         success: false,
         error: "Sub-subcategory not found"
@@ -63,10 +66,11 @@ export async function updateSubSubCategory(
     }
 
     revalidatePath("/admin/categories");
+
     return {
       success: true,
       message: "Sub-subcategory updated successfully",
-      subSubCategory
+      subSubcategory: updatedSubSubcategory
     };
   } catch (error) {
     console.error("Error updating sub-subcategory:", error);
@@ -77,29 +81,21 @@ export async function updateSubSubCategory(
   }
 }
 
-export async function deleteSubSubCategory(id: string) {
+export async function deleteSubSubcategory(id: string) {
   try {
     await connectDB();
 
-    const subSubCategory = await SubSubCategory.findById(id);
-    if (!subSubCategory) {
+    const deletedSubSubcategory = await SubSubCategory.findByIdAndDelete(id);
+
+    if (!deletedSubSubcategory) {
       return {
         success: false,
         error: "Sub-subcategory not found"
       };
     }
 
-    // Check if there are products under this sub-subcategory
-    if (subSubCategory.products.length > 0) {
-      return {
-        success: false,
-        error: "Cannot delete sub-subcategory with existing products"
-      };
-    }
-
-    await SubSubCategory.findByIdAndDelete(id);
-
     revalidatePath("/admin/categories");
+
     return {
       success: true,
       message: "Sub-subcategory deleted successfully"

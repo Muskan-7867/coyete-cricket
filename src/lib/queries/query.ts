@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { getQualitiesAction } from "../actions/qualityActions";
 import { getColorsAction } from "../actions/colorActions";
-import { getSizesAction } from "../actions/sizeAction";
+import { getSizesAction, getSizesByCategory } from "../actions/sizeAction";
 import { getAllCategories } from "../actions/categoryActions";
-import { getAllSubcategories, getSubcategoriesByCategory } from "../actions/subCategoryActions";
+import { getSubcategoriesByCategory } from "../actions/subCategoryActions";
 
 export const useCategories = () => {
   return useQuery({
@@ -36,6 +36,7 @@ export const useQuality = () => {
     staleTime: 1000 * 60 * 5
   });
 };
+
 export const useSubcategories = (categoryId: string) => {
   return useQuery({
     queryKey: ["subcategories", categoryId],
@@ -50,3 +51,16 @@ export const useSubcategories = (categoryId: string) => {
   });
 };
 
+export const useSizesByCategory = (categoryId?: string) => {
+  return useQuery({
+    queryKey: ["sizes", categoryId],
+    queryFn: async () => {
+      if (!categoryId) return [];
+      const res = await getSizesByCategory(categoryId);
+      if (res.success) return res.sizes;
+      return [];
+    },
+    enabled: !!categoryId, // only fetch if categoryId exists
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  });
+};
