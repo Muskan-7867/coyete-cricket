@@ -3,17 +3,19 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react"; // Changed from ShoppingCart to Heart
+import { Heart } from "lucide-react";
 import useCartStore from "@/lib/store/Cart/Cart.store";
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
 interface SingleProductCardProps {
   id: string;
   name: string;
   price: number;
-  originalPrice: number;
-  images?: { url: string }[];
+  originalPrice?: number;
+  images?: string | StaticImport;
   slug?: string;
-  hoverImage: string;
+  hoverImage: string | undefined;
+  categoryName: string;
 }
 
 function SingleProductCard({
@@ -23,7 +25,8 @@ function SingleProductCard({
   originalPrice,
   slug,
   images,
-  hoverImage
+  hoverImage,
+  
 }: SingleProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -75,10 +78,11 @@ function SingleProductCard({
       console.log("✅ Added to wishlist:", name);
     }
   };
-
+const displayImage =
+  (isHovered ? hoverImage || images : images) || placeholderImage;
   return (
     <div
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden"
+      className=" rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -96,10 +100,10 @@ function SingleProductCard({
           )}
 
           <Image
-            src={isHovered ? hoverImage || images : images || placeholderImage}
+           src={displayImage}
             alt={name}
             fill
-            className={`object-contain transition-all duration-300 ${
+            className={`object-contain transition-all duration-300 p-6 ${
               isImageLoaded ? "opacity-100" : "opacity-0"
             }`}
             onLoadingComplete={() => setIsImageLoaded(true)}
