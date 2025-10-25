@@ -361,7 +361,7 @@ export default function AddProductPage() {
             >
               <option value="">Select Size</option>
               {filteredSizes?.map((sz) => (
-                <option key={sz._id} value={sz._id}>
+                <option key={sz._id} value={sz.name}>
                   {sz.name}
                 </option>
               ))}
@@ -379,7 +379,7 @@ export default function AddProductPage() {
             >
               <option value="">Select Quality</option>
               {getQualities().map((q) => (
-                <option key={q._id} value={q._id}>
+                <option key={q._id} value={q.name}>
                   {q.name}
                 </option>
               ))}
@@ -397,7 +397,7 @@ export default function AddProductPage() {
             >
               <option value="">Select Color</option>
               {getColors().map((c) => (
-                <option key={c._id} value={c._id}>
+                <option key={c._id} value={c.name}>
                   {c.name}
                 </option>
               ))}
