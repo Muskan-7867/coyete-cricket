@@ -93,7 +93,7 @@ export async function createSubcategory(data: {
     console.error("Error creating subcategory:", error);
     return {
       success: false,
-      error: error.message || "Failed to create subcategory"
+      error: "Failed to create subcategory"
     };
   }
 }
@@ -184,36 +184,38 @@ export async function deleteSubcategory(id: string) {
   }
 }
 
-// export async function getSubcategoryById(id: string) {
-//   try {
-//     await connectDB();
-//     const subcategory = await SubCategory.findById(id)
-//       .populate("parentCategory")
-//       .populate("parentSubCategory");
+export async function getSubcategoryById(id: string) {
+  try {
+    await connectDB();
+    const subcategory = await SubCategory.findById(id)
+      .populate("parentCategory")
+      .populate("parentSubCategory");
 
-//     if (!subcategory)
-//       return { success: false, message: "Subcategory not found" };
+    if (!subcategory)
+      return { success: false, message: "Subcategory not found" };
 
-//     // ✅ convert to plain object
-//     const plainSubcategory = JSON.parse(JSON.stringify(subcategory));
+    // ✅ convert to plain object
+    const plainSubcategory = JSON.parse(JSON.stringify(subcategory));
 
-//     return { success: true, subcategory: plainSubcategory };
-//   } catch (error) {
-//     console.error("Error fetching subcategory:", error);
-//     return { success: false, message: "Server error" };
-//   }
-// }
+    return { success: true, subcategory: plainSubcategory };
+  } catch (error) {
+    console.error("Error fetching subcategory:", error);
+    return { success: false, message: "Server error" };
+  }
+}
 
 export async function getSubcategoriesByCategory(categoryId: string) {
   try {
     await connectDB();
 
-    const subcategories = await SubCategory.find({ parentCategory: categoryId })
+    const subcategories = await SubCategory.find({
+      parentCategory: categoryId,
+      parentSubCategory: null
+    })
       .populate("parentCategory")
-      .populate("parentSubCategory")
       .sort({ createdAt: -1 })
       .lean();
-
+    console.log("from subcataction", subcategories);
     return {
       success: true,
       subcategories: JSON.parse(JSON.stringify(subcategories))
@@ -223,6 +225,26 @@ export async function getSubcategoriesByCategory(categoryId: string) {
     return { success: false, error: "Failed to fetch subcategories" };
   }
 }
+
+// export async function getSubcategoriesByCategory(categoryId: string) {
+//   try {
+//     await connectDB();
+
+//     const subcategories = await SubCategory.find({ parentCategory: categoryId })
+//       .populate("parentCategory")
+//       .populate("parentSubCategory")
+//       .sort({ createdAt: -1 })
+//       .lean();
+
+//     return {
+//       success: true,
+//       subcategories: JSON.parse(JSON.stringify(subcategories))
+//     };
+//   } catch (error) {
+//     console.error("Error fetching subcategories:", error);
+//     return { success: false, error: "Failed to fetch subcategories" };
+//   }
+// }
 
 export async function getSubcategoryByName(name: string) {
   try {

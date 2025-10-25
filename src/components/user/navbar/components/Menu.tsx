@@ -53,7 +53,7 @@ const SubCategoryList = ({
       );
     } else {
       // Navigate for leaf categories
-      router.push(`/product/category${currentPath}`);
+      router.push(`/products/${currentPath}`);
       // Close all open subcategories
       setOpenSubIds([]);
     }
@@ -71,7 +71,7 @@ const SubCategoryList = ({
             Array.isArray(sub.subcategories) && sub.subcategories.length > 0;
           const isOpen = openSubIds.includes(sub._id);
           const currentPath = buildCategoryPath(sub, parentPath);
-          const isActive = pathname === `/product/category${currentPath}`;
+          const isActive = pathname === `/products/${currentPath}`;
 
           return (
             <li key={sub._id} className="group">
@@ -176,7 +176,7 @@ export const CategoryMenu = ({
     setMoreOpen(false);
 
     startTransition(() => {
-      router.push(`/product/category/${category.name}`);
+      router.push(`/products/${category.name}`);
     });
   };
 
@@ -225,7 +225,7 @@ export const CategoryMenu = ({
       {visibleMenus.map((menu) => {
         const hasChildren =
           Array.isArray(menu.subcategories) && menu.subcategories.length > 0;
-        const isActive = pathname === `/product/category/${menu.name}`;
+        const isActive = pathname === `/products/${menu.name}`;
 
         return (
           <div
@@ -320,7 +320,7 @@ export const CategoryMenu = ({
                 const hasChildren =
                   Array.isArray(menu.subcategories) &&
                   menu.subcategories.length > 0;
-                const isActive = pathname === `/product/category/${menu.name}`;
+                const isActive = pathname === `/products/${menu.name}`;
 
                 return (
                   <div

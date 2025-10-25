@@ -224,7 +224,6 @@ export async function getCategoryById(id: string) {
   }
 }
 
-// lib/actions/getCategories.ts
 export async function getCategoryIdByName(categoryName: string) {
   try {
     await connectDB();
@@ -241,3 +240,19 @@ export async function getCategoryIdByName(categoryName: string) {
     return "";
   }
 }
+
+// export async function getCategoryIdByName(categoryName: string) {
+//   try {
+//     await connectDB();
+
+//     const category = await Category.findOne<{ _id: string }>(
+//       { name: { $regex: new RegExp(`^${categoryName}$`, "i") } },
+//       "_id"
+//     ).lean();
+
+//     return category?._id?.toString() || "";
+//   } catch (error) {
+//     console.error("Error fetching category ID:", error);
+//     return "";
+//   }
+// }

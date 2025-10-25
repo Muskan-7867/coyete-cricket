@@ -8,7 +8,7 @@ interface WishlistItem {
   name: string;
   price: number;
   originalPrice: number;
-  image: string;
+  images: string;
   slug: string;
 }
 
@@ -22,7 +22,7 @@ export default function Cart() {
     if (stored) {
       const parsed = JSON.parse(stored);
       setWishlistItems(parsed);
-      console.log("from cart", parsed)
+      console.log("from cart", parsed);
       setCartCount(parsed.length); // ✅ Sync count on mount
     } else {
       setCartCount(0);
@@ -60,15 +60,14 @@ export default function Cart() {
             className="flex items-center justify-between bg-white shadow-md p-4 rounded-xl"
           >
             <div className="flex items-center gap-4">
-            
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  width={80}
-                  height={80}
-                  className="rounded-lg object-contain"
-                />
-             
+              <Image
+                src={item.images}
+                alt={item.name}
+                width={50}
+                height={50}
+                className="rounded-lg object-contain"
+              />
+
               <div>
                 <h3 className="font-semibold text-gray-800">{item.name}</h3>
                 <p className="text-gray-600">₹{item.price.toLocaleString()}</p>

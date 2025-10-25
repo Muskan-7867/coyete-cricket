@@ -96,23 +96,23 @@ export async function deleteSizeAction(formData: FormData) {
 }
 
 
-// export async function getSizeById(id: string) {
-//   try {
-//     await connectDB();
+export async function getSizeById(id: string) {
+  try {
+    await connectDB();
 
-//     const size = await Size.findById(id).populate("category").lean(); // ✅ use lean() and populate
+    const size = await Size.findById(id).populate("category").lean(); // ✅ use lean() and populate
 
-//     if (!size) {
-//       return { success: false, message: "Size not found" };
-//     }
+    if (!size) {
+      return { success: false, message: "Size not found" };
+    }
 
-//     // ✅ ensure safe serialization
-//     return { success: true, size: JSON.parse(JSON.stringify(size)) }; 
-//   } catch (error) {
-//     console.error("Error fetching size:", error);
-//     return { success: false, message: "Server error" };
-//   }
-// }
+    // ✅ ensure safe serialization
+    return { success: true, size: JSON.parse(JSON.stringify(size)) }; 
+  } catch (error) {
+    console.error("Error fetching size:", error);
+    return { success: false, message: "Server error" };
+  }
+}
 
 export async function getSizesByCategory(categoryId: string) {
   try {

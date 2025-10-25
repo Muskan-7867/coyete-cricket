@@ -74,9 +74,7 @@ export async function fetchProductsByCategory({
       }
     }
 
-    // 🔥 ADD FILTER LOGIC HERE
     if (filters) {
-      // Subcategory filter
       if (filters.subcategories && filters.subcategories.length > 0) {
         const subCategoryDocs = await SubCategory.find({
           name: { $in: filters.subcategories }
@@ -87,22 +85,18 @@ export async function fetchProductsByCategory({
         }
       }
 
-      // Size filter
       if (filters.sizes && filters.sizes.length > 0) {
         query.size = { $in: filters.sizes };
       }
 
-      // Color filter
       if (filters.colors && filters.colors.length > 0) {
-        query.color = { $in: filters.colors };
+        query.colors = { $in: filters.colors.map((c) => new RegExp(c, "i")) }; // case-insensitive
       }
 
-      // Quality filter
       if (filters.qualities && filters.qualities.length > 0) {
-        query.qualityName = { $in: filters.qualities };
+        query.quality = { $in: filters.qualities };
       }
 
-      // Price range filter
       if (filters.price_min || filters.price_max) {
         query.price = {};
         if (filters.price_min) query.price.$gte = parseFloat(filters.price_min);
